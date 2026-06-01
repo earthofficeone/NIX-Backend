@@ -11,6 +11,7 @@ type Config struct {
 	MongoURI   string
 	JWTSecret  string
 	CORSOrigin string
+	GinMode    string
 }
 
 func Load() Config {
@@ -36,10 +37,16 @@ func Load() Config {
 		corsOrigin = "http://localhost:5173"
 	}
 
+	ginMode := os.Getenv("GIN_MODE")
+	if ginMode == "" {
+		ginMode = "debug"
+	}
+
 	return Config{
 		Port:       port,
 		MongoURI:   mongoURI,
 		JWTSecret:  jwtSecret,
 		CORSOrigin: corsOrigin,
+		GinMode:    ginMode,
 	}
 }

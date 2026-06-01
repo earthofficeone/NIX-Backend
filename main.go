@@ -48,9 +48,10 @@ func main() {
 	authHandler := handlers.NewAuthHandler(cfg, userRepo)
 	txHandler := handlers.NewTransactionHandler(txRepo)
 
-	gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(cfg.GinMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
+	r.Use(middleware.RequestLogger())
 	r.Use(corsMiddleware(cfg.CORSOrigin))
 
 	r.GET("/health", func(c *gin.Context) {
