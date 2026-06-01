@@ -60,7 +60,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestLogger())
-	r.Use(corsMiddleware(cfg.CORSOrigin))
+	r.Use(corsMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -104,16 +104,29 @@ func main() {
 	_ = srv.Shutdown(shutdownCtx)
 }
 
-func corsMiddleware(origin string) gin.HandlerFunc {
+func corsMiddleware() gin.HandlerFunc {
+	allowedOrigins := map[string]bool{
+		"http://localhost:5173":                           true,
+		"https://magnificent-twilight-dd1f43.netlify.app": true,
+	}
+
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", origin)
+		origin := c.Request.Header.Get("Origin")
+
+		if allowedOrigins[origin] {
+			c.Header("Access-Control-Allow-Origin", origin)
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Authorization")
 		c.Header("Access-Control-Expose-Headers", "Content-Length")
+
 		if c.Request.Method == http.MethodOptions {
 			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
+
 		c.Next()
 	}
 }
