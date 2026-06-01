@@ -106,8 +106,8 @@ func main() {
 
 func corsMiddleware() gin.HandlerFunc {
 	allowedOrigins := map[string]bool{
-		"http://localhost:5173":                           true,
-		"https://magnificent-twilight-dd1f43.netlify.app": true,
+		"http://localhost:5173":       true,
+		"https://nix-one.netlify.app": true,
 	}
 
 	return func(c *gin.Context) {
