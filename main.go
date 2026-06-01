@@ -21,13 +21,21 @@ import (
 
 func main() {
 	cfg := config.Load()
+	log.Printf("starting nix-backend (port=%s gin_mode=%s)", cfg.Port, cfg.GinMode)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	if cfg.MongoURI == "" || cfg.MongoURI == "mongodb://localhost:27017/nix" {
+		if os.Getenv("MONGODB_URI") == "" {
+			log.Fatal("mongodb: MONGODB_URI is not set — add it in Render Environment Variables")
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	client, err := database.Connect(ctx, cfg.MongoURI)
 	cancel()
 	if err != nil {
-		log.Fatalf("mongodb: %v", err)
+		log.Fatalf("mongodb: connect failed: %v (check MONGODB_URI and Atlas Network Access 0.0.0.0/0)", err)
 	}
+	log.Print("mongodb: connected")
 	defer func() {
 		disconnectCtx, disconnectCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer disconnectCancel()
