@@ -53,13 +53,21 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db)
 	txRepo := repository.NewTransactionRepository(db)
+	titleRepo := repository.NewRecordTitleRepository(db)
 	authHandler := handlers.NewAuthHandler(cfg, userRepo)
 	txHandler := handlers.NewTransactionHandler(txRepo)
+	titleHandler := handlers.NewRecordTitleHandler(titleRepo)
+
+	indexCtx, indexCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	if err := titleRepo.EnsureIndexes(indexCtx); err != nil {
+		log.Printf("mongodb: record_titles index: %v", err)
+	}
+	indexCancel()
 
 	gin.SetMode(cfg.GinMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.Use(middleware.RequestLogger())
+	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/health"}}))
 	r.Use(corsMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
@@ -68,18 +76,36 @@ func main() {
 
 	api := r.Group("/api")
 	{
-		api.POST("/auth/register", authHandler.Register)
-		api.POST("/auth/login", authHandler.Login)
+		auth := api.Group("/auth")
+		{
+			auth.POST("/register", authHandler.Register)
+			auth.POST("/login", authHandler.Login)
+		}
 
 		protected := api.Group("")
 		protected.Use(middleware.AuthRequired(cfg))
 		{
-			protected.GET("/auth/me", authHandler.Me)
-			protected.GET("/transactions", txHandler.List)
-			protected.GET("/transactions/:id", txHandler.Get)
-			protected.POST("/transactions", txHandler.Create)
-			protected.PUT("/transactions/:id", txHandler.Update)
-			protected.DELETE("/transactions/:id", txHandler.Delete)
+			protectedAuth := protected.Group("/auth")
+			{
+				protectedAuth.GET("/me", authHandler.Me)
+			}
+
+			transactions := protected.Group("/transactions")
+			{
+				transactions.GET("", txHandler.List)
+				transactions.GET("/:id", txHandler.Get)
+				transactions.POST("", txHandler.Create)
+				transactions.PUT("/:id", txHandler.Update)
+				transactions.DELETE("/:id", txHandler.Delete)
+			}
+
+			titles := protected.Group("/titles")
+			{
+				titles.GET("", titleHandler.List)
+				titles.POST("", titleHandler.Create)
+				titles.PUT("/:id", titleHandler.Update)
+				titles.DELETE("/:id", titleHandler.Delete)
+			}
 		}
 	}
 
