@@ -5,9 +5,13 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/smtp"
 	"strings"
+	"time"
 )
+
+const smtpDialTimeout = 10 * time.Second
 
 type Sender interface {
 	Send(ctx context.Context, to, subject, body string) error
@@ -25,21 +29,50 @@ func NewSMTPSender(host, port, user, pass, from string) *SMTPSender {
 	return &SMTPSender{host: host, port: port, user: user, pass: pass, from: from}
 }
 
-func (s *SMTPSender) Send(_ context.Context, to, subject, body string) error {
+func (s *SMTPSender) Send(ctx context.Context, to, subject, body string) error {
 	addr := fmt.Sprintf("%s:%s", s.host, s.port)
 	msg := buildMessage(s.from, to, subject, body)
-
 	auth := smtp.PlainAuth("", s.user, s.pass, s.host)
 
 	if s.port == "465" {
-		return s.sendTLS(addr, auth, s.from, []string{to}, msg)
+		return s.sendTLS(ctx, addr, auth, s.from, []string{to}, msg)
 	}
 
-	return smtp.SendMail(addr, auth, extractEmail(s.from), []string{to}, msg)
+	return s.sendSTARTTLS(ctx, addr, auth, extractEmail(s.from), []string{to}, msg)
 }
 
-func (s *SMTPSender) sendTLS(addr string, auth smtp.Auth, from string, to []string, msg []byte) error {
-	conn, err := tls.Dial("tcp", addr, &tls.Config{ServerName: s.host})
+func (s *SMTPSender) sendSTARTTLS(ctx context.Context, addr string, auth smtp.Auth, from string, to []string, msg []byte) error {
+	dialer := &net.Dialer{Timeout: smtpDialTimeout}
+	conn, err := dialer.DialContext(ctx, "tcp", addr)
+	if err != nil {
+		return fmt.Errorf("smtp dial: %w", err)
+	}
+	defer conn.Close()
+
+	client, err := smtp.NewClient(conn, s.host)
+	if err != nil {
+		return fmt.Errorf("smtp new client: %w", err)
+	}
+	defer client.Close()
+
+	if ok, _ := client.Extension("STARTTLS"); ok {
+		if err := client.StartTLS(&tls.Config{ServerName: s.host}); err != nil {
+			return fmt.Errorf("smtp starttls: %w", err)
+		}
+	}
+
+	if auth != nil {
+		if err := client.Auth(auth); err != nil {
+			return fmt.Errorf("smtp auth: %w", err)
+		}
+	}
+
+	return s.deliver(client, from, to, msg)
+}
+
+func (s *SMTPSender) sendTLS(ctx context.Context, addr string, auth smtp.Auth, from string, to []string, msg []byte) error {
+	dialer := &net.Dialer{Timeout: smtpDialTimeout}
+	conn, err := tls.DialWithDialer(dialer, "tcp", addr, &tls.Config{ServerName: s.host})
 	if err != nil {
 		return fmt.Errorf("smtp tls dial: %w", err)
 	}
@@ -57,7 +90,11 @@ func (s *SMTPSender) sendTLS(addr string, auth smtp.Auth, from string, to []stri
 		}
 	}
 
-	if err := client.Mail(extractEmail(from)); err != nil {
+	return s.deliver(client, extractEmail(from), to, msg)
+}
+
+func (s *SMTPSender) deliver(client *smtp.Client, from string, to []string, msg []byte) error {
+	if err := client.Mail(from); err != nil {
 		return fmt.Errorf("smtp mail from: %w", err)
 	}
 	for _, rcpt := range to {

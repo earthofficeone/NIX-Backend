@@ -88,7 +88,7 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/health"}}))
-	r.Use(corsMiddleware())
+	r.Use(corsMiddleware(cfg.CORSOrigin))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -152,18 +152,17 @@ func main() {
 	_ = srv.Shutdown(shutdownCtx)
 }
 
-func corsMiddleware() gin.HandlerFunc {
-	allowedOrigins := map[string]bool{
-		"http://localhost:5173":       true,
-		"https://nix-one.netlify.app": true,
-	}
+func corsMiddleware(corsOrigin string) gin.HandlerFunc {
+	allowedOrigins := buildAllowedOrigins(corsOrigin)
+	log.Printf("cors: allowed origins %v", originKeys(allowedOrigins))
 
 	return func(c *gin.Context) {
-		origin := c.Request.Header.Get("Origin")
+		origin := normalizeOrigin(c.Request.Header.Get("Origin"))
 
 		if allowedOrigins[origin] {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Access-Control-Allow-Credentials", "true")
+			c.Header("Vary", "Origin")
 		}
 
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
@@ -177,4 +176,29 @@ func corsMiddleware() gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+func buildAllowedOrigins(corsOrigin string) map[string]bool {
+	allowed := map[string]bool{
+		"http://localhost:5173":       true,
+		"https://nix-one.netlify.app": true,
+	}
+	for _, o := range strings.Split(corsOrigin, ",") {
+		if o = normalizeOrigin(o); o != "" {
+			allowed[o] = true
+		}
+	}
+	return allowed
+}
+
+func normalizeOrigin(origin string) string {
+	return strings.TrimRight(strings.TrimSpace(origin), "/")
+}
+
+func originKeys(m map[string]bool) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }

@@ -3,6 +3,7 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -43,6 +44,7 @@ func Load() Config {
 	if corsOrigin == "" {
 		corsOrigin = "http://localhost:5173"
 	}
+	corsOrigin = strings.TrimRight(strings.TrimSpace(corsOrigin), "/")
 
 	ginMode := os.Getenv("GIN_MODE")
 	if ginMode == "" {
