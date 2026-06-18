@@ -239,7 +239,7 @@ func (h *AuthHandler) ForgotPassword(c *gin.Context) {
 
 	if err := h.mailer.Send(ctx, user.Email, "รหัสยืนยันรีเซ็ตรหัสผ่าน NIX", email.PasswordResetBody(code)); err != nil {
 		h.logger.Error("forgot password: send email failed", "error", err, "email", emailNorm)
-		Fail(c, http.StatusInternalServerError, "ไม่สามารถส่งอีเมลได้ กรุณาลองใหม่")
+		FailWithRecovery(c, http.StatusServiceUnavailable, "ไม่สามารถส่งอีเมลได้ กรุณาใช้รหัสรับแทน")
 		return
 	}
 
