@@ -58,3 +58,11 @@ func (r *UserRepository) EmailExists(ctx context.Context, email string) (bool, e
 	count, err := r.col.CountDocuments(ctx, bson.M{"email": strings.ToLower(strings.TrimSpace(email))})
 	return count > 0, err
 }
+
+func (r *UserRepository) UpdatePassword(ctx context.Context, email, hashedPassword string) error {
+	_, err := r.col.UpdateOne(ctx,
+		bson.M{"email": strings.ToLower(strings.TrimSpace(email))},
+		bson.M{"$set": bson.M{"password": hashedPassword}},
+	)
+	return err
+}

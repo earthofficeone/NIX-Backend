@@ -21,6 +21,13 @@ go run .
 | `JWT_SECRET` | สตริงสุ่มยาว (production) |
 | `CORS_ORIGIN` | URL frontend |
 | `GIN_MODE` | `debug` หรือ `release` |
+| `SMTP_HOST` | SMTP host (เช่น `smtp.resend.com`) |
+| `SMTP_PORT` | SMTP port (default `587`) |
+| `SMTP_USER` | SMTP username |
+| `SMTP_PASSWORD` | SMTP password / API key |
+| `SMTP_FROM` | ผู้ส่ง เช่น `NIX <noreply@yourdomain.com>` |
+
+ถ้าไม่ตั้งค่า SMTP ระบบจะ log รหัส OTP ลง stdout (ใช้ dev ได้)
 
 ## Deploy บน Render
 
@@ -57,6 +64,8 @@ go run .
 | GET | `/health` | ตรวจสถานะ |
 | POST | `/api/auth/register` | สมัครสมาชิก |
 | POST | `/api/auth/login` | เข้าสู่ระบบ |
+| POST | `/api/auth/forgot-password` | ขอรหัสยืนยันทางอีเมล |
+| POST | `/api/auth/reset-password` | ตั้งรหัสผ่านใหม่ด้วยรหัสยืนยัน |
 | GET | `/api/auth/me` | ข้อมูลผู้ใช้ (Bearer token) |
 | GET | `/api/transactions?month=YYYY-MM` | รายการ |
 | POST | `/api/transactions` | สร้างรายการ |
