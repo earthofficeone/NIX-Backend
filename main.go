@@ -23,7 +23,7 @@ import (
 
 func main() {
 	cfg := config.Load()
-	log.Printf("starting nix-backend (port=%s gin_mode=%s)", cfg.Port, cfg.GinMode)
+	log.Printf("starting v0.0.1 nix-backend (port=%s gin_mode=%s)", cfg.Port, cfg.GinMode)
 
 	if cfg.MongoURI == "" || cfg.MongoURI == "mongodb://localhost:27017/nix" {
 		if os.Getenv("MONGODB_URI") == "" {
