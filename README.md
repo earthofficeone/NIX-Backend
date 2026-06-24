@@ -34,6 +34,14 @@ go run .
 - **Build:** `go build -tags netgo -ldflags '-s -w' -o app`
 - **Start:** `./app`
 
+### Keep-alive (Render free tier)
+
+Render free tier จะ spin down หลัง idle ~15 นาที ทำให้ login ครั้งแรก timeout ได้
+
+**GitHub Actions (ใน repo แล้ว):** push ขึ้น GitHub แล้วเปิด Actions — workflow `Keep Render backend awake` จะ ping `/health` ทุก 10 นาที
+
+**UptimeRobot (ทางเลือก):** สร้าง HTTP(s) monitor → URL `https://nix-backend-bost.onrender.com/health` → interval 5 นาที
+
 ## แก้ error `tls: internal error` / `ReplicaSetNoPrimary`
 
 1. **MongoDB Atlas → Network Access**
