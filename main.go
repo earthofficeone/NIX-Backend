@@ -13,7 +13,6 @@ import (
 
 	"nix-backend/internal/config"
 	"nix-backend/internal/database"
-	"nix-backend/internal/email"
 	"nix-backend/internal/handlers"
 	"nix-backend/internal/middleware"
 	"nix-backend/internal/repository"
@@ -54,33 +53,18 @@ func main() {
 	db := database.DB(client, dbName)
 
 	userRepo := repository.NewUserRepository(db)
-	resetRepo := repository.NewPasswordResetRepository(db)
 	txRepo := repository.NewTransactionRepository(db)
 	titleRepo := repository.NewRecordTitleRepository(db)
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
-	var mailer email.Sender
-	if cfg.EmailConfigured() {
-		cfg.LogEmailConfig(logger)
-		mailer = email.NewSMTPSender(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUser, cfg.SMTPPass, cfg.SMTPFrom)
-		log.Print("email: SMTP configured")
-	} else {
-		cfg.LogEmailConfig(logger)
-		mailer = email.NewLogSender(logger)
-		log.Print("email: SMTP not configured — OTP will be logged to stdout (dev mode)")
-	}
-
-	authHandler := handlers.NewAuthHandler(cfg, userRepo, resetRepo, mailer, logger)
+	authHandler := handlers.NewAuthHandler(cfg, userRepo, logger)
 	txHandler := handlers.NewTransactionHandler(txRepo)
 	titleHandler := handlers.NewRecordTitleHandler(titleRepo)
 
 	indexCtx, indexCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	if err := titleRepo.EnsureIndexes(indexCtx); err != nil {
 		log.Printf("mongodb: record_titles index: %v", err)
-	}
-	if err := resetRepo.EnsureIndexes(indexCtx); err != nil {
-		log.Printf("mongodb: password_resets index: %v", err)
 	}
 	indexCancel()
 
@@ -100,7 +84,6 @@ func main() {
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
-			auth.POST("/forgot-password", authHandler.ForgotPassword)
 			auth.POST("/reset-password", authHandler.ResetPassword)
 		}
 

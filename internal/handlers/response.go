@@ -17,10 +17,3 @@ func Created(c *gin.Context, data interface{}) {
 func Fail(c *gin.Context, status int, message string) {
 	c.JSON(status, gin.H{"error": message})
 }
-
-func FailWithRecovery(c *gin.Context, status int, message string) {
-	c.JSON(status, gin.H{
-		"error":              message,
-		"recovery_available": true,
-	})
-}
