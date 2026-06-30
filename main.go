@@ -72,7 +72,7 @@ func main() {
 	gin.SetMode(cfg.GinMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/api/health"}}))
+	r.Use(gin.Logger())
 	r.Use(corsMiddleware(cfg.CORSOrigin))
 
 	api := r.Group("/api")
