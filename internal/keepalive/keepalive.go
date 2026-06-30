@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	interval    = 5 * time.Minute
+	interval    = 10 * time.Minute
 	healthPath  = "/api/health"
 	pingTimeout = 30 * time.Second
 )
