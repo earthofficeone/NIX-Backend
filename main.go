@@ -71,23 +71,23 @@ func main() {
 	gin.SetMode(cfg.GinMode)
 	r := gin.New()
 	r.Use(gin.Recovery())
-	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/health"}}))
+	r.Use(gin.LoggerWithConfig(gin.LoggerConfig{SkipPaths: []string{"/api/health"}}))
 	r.Use(corsMiddleware(cfg.CORSOrigin))
-
-	r.GET("/health", func(c *gin.Context) {
-		if source := strings.TrimSpace(c.GetHeader("X-Keep-Alive-Source")); source != "" {
-			logger.Info("keep-alive ping",
-				"source", source,
-				"origin", c.GetHeader("Origin"),
-				"user_agent", c.GetHeader("User-Agent"),
-				"client_ip", c.ClientIP(),
-			)
-		}
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
 
 	api := r.Group("/api")
 	{
+		api.GET("/health", func(c *gin.Context) {
+			if source := strings.TrimSpace(c.GetHeader("X-Keep-Alive-Source")); source != "" {
+				logger.Info("keep-alive ping",
+					"source", source,
+					"origin", c.GetHeader("Origin"),
+					"user_agent", c.GetHeader("User-Agent"),
+					"client_ip", c.ClientIP(),
+				)
+			}
+			c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		})
+
 		auth := api.Group("/auth")
 		{
 			auth.POST("/register", authHandler.Register)
