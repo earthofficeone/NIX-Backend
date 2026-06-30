@@ -14,6 +14,7 @@ type Config struct {
 	CORSOrigin      string
 	GinMode         string
 	ResetMasterCode string
+	PublicURL       string
 }
 
 func Load() Config {
@@ -50,6 +51,11 @@ func Load() Config {
 		resetMasterCode = "230644"
 	}
 
+	publicURL := strings.TrimRight(strings.TrimSpace(os.Getenv("PUBLIC_URL")), "/")
+	if publicURL == "" {
+		publicURL = strings.TrimRight(strings.TrimSpace(os.Getenv("RENDER_EXTERNAL_URL")), "/")
+	}
+
 	return Config{
 		Port:            port,
 		MongoURI:        mongoURI,
@@ -57,5 +63,6 @@ func Load() Config {
 		CORSOrigin:      corsOrigin,
 		GinMode:         ginMode,
 		ResetMasterCode: resetMasterCode,
+		PublicURL:       publicURL,
 	}
 }

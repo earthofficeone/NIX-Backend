@@ -14,6 +14,7 @@ import (
 	"nix-backend/internal/config"
 	"nix-backend/internal/database"
 	"nix-backend/internal/handlers"
+	"nix-backend/internal/keepalive"
 	"nix-backend/internal/middleware"
 	"nix-backend/internal/repository"
 
@@ -126,9 +127,15 @@ func main() {
 		}
 	}()
 
+	keepAliveCtx, keepAliveCancel := context.WithCancel(context.Background())
+	defer keepAliveCancel()
+	keepalive.Start(keepAliveCtx, cfg.PublicURL)
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+
+	keepAliveCancel()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()

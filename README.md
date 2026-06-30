@@ -22,6 +22,7 @@ go run .
 | `CORS_ORIGIN` | URL frontend |
 | `GIN_MODE` | `debug` หรือ `release` |
 | `RESET_MASTER_CODE` | รหัสลับสำหรับเปลี่ยนรหัสผ่าน (production ต้องตั้งค่าเอง) |
+| `PUBLIC_URL` | URL สาธารณะสำหรับ self-ping keep-alive (Render ใช้ `RENDER_EXTERNAL_URL` อัตโนมัติ) |
 
 ## Deploy บน Render
 
@@ -32,7 +33,7 @@ go run .
 
 Render free tier จะ spin down หลัง idle ~15 นาที ทำให้ login ครั้งแรก timeout ได้
 
-**GitHub Actions (ใน repo แล้ว):** push ขึ้น GitHub แล้วเปิด Actions — workflow `Keep Render backend awake` จะ ping `/api/health` ทุก 10 นาที
+**ในแอป (อัตโนมัติ):** เมื่อ deploy บน Render จะใช้ `RENDER_EXTERNAL_URL` ping `GET /api/health` ทุก 5 นาที (local ไม่ยิงถ้าไม่ตั้ง `PUBLIC_URL`)
 
 **UptimeRobot (ทางเลือก):** สร้าง HTTP(s) monitor → URL `https://nix-backend-bost.onrender.com/api/health` → interval 5 นาที
 
