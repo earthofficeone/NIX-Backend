@@ -77,15 +77,7 @@ func main() {
 	api := r.Group("/api")
 	{
 		api.GET("/health", func(c *gin.Context) {
-			if source := strings.TrimSpace(c.GetHeader("X-Keep-Alive-Source")); source != "" {
-				logger.Info("keep-alive ping",
-					"source", source,
-					"origin", c.GetHeader("Origin"),
-					"user_agent", c.GetHeader("User-Agent"),
-					"client_ip", c.ClientIP(),
-				)
-			}
-			c.JSON(http.StatusOK, gin.H{"status": "ok"})
+			handlers.OK(c, gin.H{"status": "ok"})
 		})
 
 		auth := api.Group("/auth")
