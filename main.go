@@ -55,12 +55,14 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db)
 	txRepo := repository.NewTransactionRepository(db)
+	noteRepo := repository.NewNoteRepository(db)
 	titleRepo := repository.NewRecordTitleRepository(db)
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	authHandler := handlers.NewAuthHandler(cfg, userRepo, logger)
 	txHandler := handlers.NewTransactionHandler(txRepo)
+	noteHandler := handlers.NewNoteHandler(noteRepo)
 	titleHandler := handlers.NewRecordTitleHandler(titleRepo)
 
 	indexCtx, indexCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -112,6 +114,15 @@ func main() {
 				titles.PUT("/:id", titleHandler.Update)
 				titles.DELETE("/:id", titleHandler.Delete)
 			}
+
+			notes := protected.Group("/notes")
+			{
+				notes.GET("", noteHandler.List)
+				notes.GET("/:id", noteHandler.Get)
+				notes.POST("", noteHandler.Create)
+				notes.PUT("/:id", noteHandler.Update)
+				notes.DELETE("/:id", noteHandler.Delete)
+			}
 		}
 	}
 
@@ -144,12 +155,12 @@ func main() {
 
 func corsMiddleware(corsOrigin string) gin.HandlerFunc {
 	allowedOrigins := buildAllowedOrigins(corsOrigin)
-	log.Printf("cors: allowed origins %v", originKeys(allowedOrigins))
+	log.Printf("cors: allowed origins %v (+ any localhost)", originKeys(allowedOrigins))
 
 	return func(c *gin.Context) {
 		origin := normalizeOrigin(c.Request.Header.Get("Origin"))
 
-		if allowedOrigins[origin] {
+		if allowedOrigins[origin] || isLocalDevOrigin(origin) {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Access-Control-Allow-Credentials", "true")
 			c.Header("Vary", "Origin")
@@ -179,6 +190,11 @@ func buildAllowedOrigins(corsOrigin string) map[string]bool {
 		}
 	}
 	return allowed
+}
+
+func isLocalDevOrigin(origin string) bool {
+	return strings.HasPrefix(origin, "http://localhost:") ||
+		strings.HasPrefix(origin, "http://127.0.0.1:")
 }
 
 func normalizeOrigin(origin string) string {
