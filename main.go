@@ -155,12 +155,12 @@ func main() {
 
 func corsMiddleware(corsOrigin string) gin.HandlerFunc {
 	allowedOrigins := buildAllowedOrigins(corsOrigin)
-	log.Printf("cors: allowed origins %v (+ any localhost)", originKeys(allowedOrigins))
+	log.Printf("cors: allowed origins %v", originKeys(allowedOrigins))
 
 	return func(c *gin.Context) {
 		origin := normalizeOrigin(c.Request.Header.Get("Origin"))
 
-		if allowedOrigins[origin] || isLocalDevOrigin(origin) {
+		if allowedOrigins[origin] {
 			c.Header("Access-Control-Allow-Origin", origin)
 			c.Header("Access-Control-Allow-Credentials", "true")
 			c.Header("Vary", "Origin")
@@ -190,11 +190,6 @@ func buildAllowedOrigins(corsOrigin string) map[string]bool {
 		}
 	}
 	return allowed
-}
-
-func isLocalDevOrigin(origin string) bool {
-	return strings.HasPrefix(origin, "http://localhost:") ||
-		strings.HasPrefix(origin, "http://127.0.0.1:")
 }
 
 func normalizeOrigin(origin string) string {
